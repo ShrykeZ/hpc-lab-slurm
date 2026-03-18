@@ -1,0 +1,65 @@
+---
+- name: Install compute packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "{{ compute_packages }}"
+    state: present
+
+- name: Ensure slurmd spool directory exists
+  ansible.builtin.file:
+    path: "{{ slurmd_spool_dir }}"
+    state: directory
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_user }}"
+    mode: "0755"
+
+- name: Ensure Slurm log directory exists on compute nodes
+  ansible.builtin.file:
+    path: "{{ slurm_log_dir }}"
+    state: directory
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_user }}"
+    mode: "0755"
+
+- name: Render slurm.conf on compute nodes
+  ansible.builtin.template:
+    src: slurm.conf.j2
+    dest: "{{ slurm_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart slurmd
+
+- name: Render cgroup.conf on compute nodes
+  ansible.builtin.template:
+    src: cgroup.conf.j2
+    dest: "{{ cgroup_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart slurmd
+
+- name: Render gres.conf on GPU nodes
+  ansible.builtin.template:
+    src: gres.conf.j2
+    dest: "{{ gres_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: gpu_count | default(0) | int > 0
+  notify: restart slurmd
+
+- name: Remove gres.conf from CPU-only nodes
+  ansible.builtin.file:
+    path: "{{ gres_conf_path }}"
+    state: absent
+  when: gpu_count | default(0) | int == 0
+  notify: restart slurmd
+
+- name: Ensure slurmd is enabled
+  ansible.builtin.service:
+    name: slurmd
+    state: started
+    enabled: true
+

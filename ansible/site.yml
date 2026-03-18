@@ -1,0 +1,31 @@
+- name: Prepare all nodes
+  hosts: all
+  become: true
+  roles:
+    - common
+    - munge
+
+- name: Validate NVIDIA stack on GPU nodes
+  hosts: compute_gpu
+  become: true
+  roles:
+    - nvidia_driver
+
+- name: Configure Slurm controller
+  hosts: controller
+  become: true
+  roles:
+    - slurm_controller
+
+- name: Configure Slurm compute nodes
+  hosts: compute
+  become: true
+  roles:
+    - slurm_compute
+
+- name: Validate cluster state
+  hosts: all
+  become: true
+  roles:
+    - validation
+

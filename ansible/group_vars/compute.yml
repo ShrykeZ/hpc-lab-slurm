@@ -1,0 +1,10 @@
+compute_packages:
+  - slurmd
+
+nvidia_manage_driver: false
+nvidia_driver_packages:
+  - nvidia-driver-535
+  - nvidia-utils-535
+
+gpu_autodetect_mode: nvml
+

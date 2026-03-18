@@ -1,0 +1,8 @@
+*.retry
+*.swp
+__pycache__/
+.ansible/
+.venv/
+artifacts/
+logs/
+

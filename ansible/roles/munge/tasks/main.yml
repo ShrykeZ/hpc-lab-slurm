@@ -1,0 +1,30 @@
+---
+- name: Generate Munge key on the controller if missing
+  ansible.builtin.command:
+    cmd: create-munge-key
+    creates: /etc/munge/munge.key
+  delegate_to: "{{ slurmctld_host }}"
+
+- name: Read Munge key from the controller
+  ansible.builtin.slurp:
+    src: /etc/munge/munge.key
+  delegate_to: "{{ slurmctld_host }}"
+  register: munge_key_payload
+  no_log: true
+
+- name: Install shared Munge key
+  ansible.builtin.copy:
+    dest: /etc/munge/munge.key
+    content: "{{ munge_key_payload.content | b64decode }}"
+    owner: "{{ munge_user }}"
+    group: "{{ munge_user }}"
+    mode: "0400"
+  no_log: true
+  notify: restart munge
+
+- name: Ensure Munge service is enabled
+  ansible.builtin.service:
+    name: munge
+    state: started
+    enabled: true
+

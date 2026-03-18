@@ -1,0 +1,37 @@
+---
+- name: Validate local Munge round trip
+  ansible.builtin.shell: munge -n | unmunge
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: Validate cluster state from the controller
+  ansible.builtin.command: sinfo -Nel
+  delegate_to: "{{ slurmctld_host }}"
+  register: sinfo_result
+  changed_when: false
+  run_once: true
+
+- name: Show sinfo output
+  ansible.builtin.debug:
+    var: sinfo_result.stdout_lines
+  run_once: true
+
+- name: Show node details from the controller
+  ansible.builtin.command: scontrol show nodes
+  delegate_to: "{{ slurmctld_host }}"
+  register: node_result
+  changed_when: false
+  run_once: true
+
+- name: Show node details output
+  ansible.builtin.debug:
+    var: node_result.stdout_lines
+  run_once: true
+
+- name: Validate nvidia-smi on GPU nodes
+  ansible.builtin.command: nvidia-smi -L
+  register: validation_nvidia_smi
+  changed_when: false
+  when: gpu_count | default(0) | int > 0
+

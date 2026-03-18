@@ -1,0 +1,14 @@
+---
+- name: Install NVIDIA driver packages when managed by Ansible
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "{{ nvidia_driver_packages }}"
+    state: present
+  when: nvidia_manage_driver | bool
+
+- name: Verify NVIDIA driver health
+  ansible.builtin.command: nvidia-smi -L
+  register: nvidia_smi_result
+  changed_when: false
+

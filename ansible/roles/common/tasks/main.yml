@@ -1,0 +1,32 @@
+---
+- name: Install base packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Ensure Slurm config directory exists
+  ansible.builtin.file:
+    path: "{{ slurm_conf_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+
+- name: Ensure chrony is enabled
+  ansible.builtin.service:
+    name: chrony
+    state: started
+    enabled: true
+
+- name: Publish static hosts entries for the cluster
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} ANSIBLE MANAGED SLURM CLUSTER"
+    block: |
+      {% for host in groups['all'] | sort %}
+      {{ hostvars[host].ansible_host }} {{ host }}
+      {% endfor %}
+

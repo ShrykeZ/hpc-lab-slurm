@@ -1,0 +1,40 @@
+ClusterName={{ cluster_name }}
+SlurmctldHost={{ slurmctld_host }}
+
+AuthType=auth/munge
+CryptoType=crypto/munge
+
+SlurmUser={{ slurm_user }}
+StateSaveLocation={{ state_save_location }}
+SlurmdSpoolDir={{ slurmd_spool_dir }}
+
+SlurmctldPort={{ slurmctld_port }}
+SlurmdPort={{ slurmd_port }}
+
+ProctrackType={{ slurm_proctrack_type }}
+TaskPlugin={{ slurm_task_plugin }}
+
+ReturnToService={{ slurm_return_to_service }}
+SchedulerType={{ slurm_scheduler_type }}
+SelectType={{ slurm_select_type }}
+SelectTypeParameters={{ slurm_select_type_parameters }}
+
+GresTypes={{ slurm_gres_types | join(',') }}
+
+MpiDefault=none
+SlurmctldPidFile=/run/slurmctld.pid
+SlurmdPidFile=/run/slurmd.pid
+SlurmctldLogFile={{ slurm_log_dir }}/slurmctld.log
+SlurmdLogFile={{ slurm_log_dir }}/slurmd.log
+
+{% for node in groups['compute'] | sort %}
+NodeName={{ node }} CPUs={{ hostvars[node].slurm_cpus | default(32) }} RealMemory={{ hostvars[node].real_memory_mb | default(250000) }}{% if hostvars[node].gpu_count | default(0) | int > 0 %} Gres=gpu:{{ hostvars[node].gpu_count }}{% endif %} State=UNKNOWN
+{% endfor %}
+
+{% if groups['compute_gpu'] | length > 0 %}
+PartitionName=gpu Nodes={{ groups['compute_gpu'] | join(',') }} Default={{ 'YES' if slurm_default_partition == 'gpu' else 'NO' }} MaxTime=INFINITE State=UP
+{% endif %}
+{% if groups['compute_cpu'] | length > 0 %}
+PartitionName=cpu Nodes={{ groups['compute_cpu'] | join(',') }} Default={{ 'YES' if slurm_default_partition == 'cpu' else 'NO' }} MaxTime=INFINITE State=UP
+{% endif %}
+

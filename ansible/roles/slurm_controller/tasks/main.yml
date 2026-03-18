@@ -1,0 +1,48 @@
+---
+- name: Install controller packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "{{ controller_packages }}"
+    state: present
+
+- name: Ensure controller state directory exists
+  ansible.builtin.file:
+    path: "{{ state_save_location }}"
+    state: directory
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_user }}"
+    mode: "0755"
+
+- name: Ensure Slurm log directory exists on the controller
+  ansible.builtin.file:
+    path: "{{ slurm_log_dir }}"
+    state: directory
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_user }}"
+    mode: "0755"
+
+- name: Render slurm.conf on the controller
+  ansible.builtin.template:
+    src: slurm.conf.j2
+    dest: "{{ slurm_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart slurmctld
+
+- name: Render cgroup.conf on the controller
+  ansible.builtin.template:
+    src: cgroup.conf.j2
+    dest: "{{ cgroup_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart slurmctld
+
+- name: Ensure slurmctld is enabled
+  ansible.builtin.service:
+    name: slurmctld
+    state: started
+    enabled: true
+
