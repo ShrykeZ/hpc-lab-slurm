@@ -94,7 +94,7 @@ You should see:
 
 ## Further Work
 
-1. Add `slurmdbd` with MySQL or MariaDB-backed accounting.
-2. Add DCGM exporter and Prometheus for GPU telemetry.
+1. Add `slurmdbd` with MySQL or MariaDB-backed accounting. [In Dev]
+2. Add DCGM exporter and Prometheus for GPU telemetry. [In Dev]
 3. Add NCCL and multi-node communication benchmarks.
 4. Add CI for Ansible linting and syntax checks.
