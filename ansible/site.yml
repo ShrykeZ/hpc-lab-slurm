@@ -11,11 +11,23 @@
   roles:
     - nvidia_driver
 
+- name: Configure Slurm accounting on the controller
+  hosts: controller
+  become: true
+  roles:
+    - slurm_accounting
+
 - name: Configure Slurm controller
   hosts: controller
   become: true
   roles:
     - slurm_controller
+
+- name: Configure Prometheus on the controller
+  hosts: controller
+  become: true
+  roles:
+    - prometheus
 
 - name: Configure Slurm compute nodes
   hosts: compute
@@ -23,9 +35,14 @@
   roles:
     - slurm_compute
 
+- name: Configure DCGM exporter on GPU nodes
+  hosts: compute_gpu
+  become: true
+  roles:
+    - dcgm_exporter
+
 - name: Validate cluster state
   hosts: all
   become: true
   roles:
     - validation
-

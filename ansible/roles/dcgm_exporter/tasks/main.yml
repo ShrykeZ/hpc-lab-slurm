@@ -1,0 +1,71 @@
+---
+- name: Install DCGM exporter prerequisites
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "{{ dcgm_exporter_base_packages }}"
+    state: present
+
+- name: Ensure Docker is enabled
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Ensure the keyrings directory exists
+  ansible.builtin.file:
+    path: /usr/share/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the NVIDIA container toolkit signing key
+  ansible.builtin.shell: |
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+      | gpg --dearmor --yes -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    executable: /bin/bash
+
+- name: Configure the NVIDIA container toolkit apt repository
+  ansible.builtin.shell: |
+    curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+      | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+      > /etc/apt/sources.list.d/nvidia-container-toolkit.list
+  args:
+    creates: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    executable: /bin/bash
+
+- name: Install the NVIDIA container toolkit
+  ansible.builtin.apt:
+    update_cache: true
+    name: "{{ nvidia_container_toolkit_package }}"
+    state: present
+
+- name: Configure Docker to use the NVIDIA container runtime
+  ansible.builtin.command: nvidia-ctk runtime configure --runtime=docker
+  register: nvidia_ctk_config
+  changed_when: "'does not require modification' not in (((nvidia_ctk_config.stdout | default('')) ~ (nvidia_ctk_config.stderr | default(''))) | lower)"
+  notify: restart docker
+
+- name: Pull the DCGM exporter image
+  ansible.builtin.command: docker pull {{ dcgm_exporter_image }}
+  register: dcgm_image_pull
+  changed_when: "'up to date' not in (((dcgm_image_pull.stdout | default('')) ~ (dcgm_image_pull.stderr | default(''))) | lower)"
+
+- name: Render the DCGM exporter systemd unit
+  ansible.builtin.template:
+    src: dcgm-exporter.service.j2
+    dest: /etc/systemd/system/dcgm-exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart dcgm exporter
+
+- name: Ensure the DCGM exporter service is enabled
+  ansible.builtin.systemd:
+    name: dcgm-exporter
+    state: started
+    enabled: true
+    daemon_reload: true

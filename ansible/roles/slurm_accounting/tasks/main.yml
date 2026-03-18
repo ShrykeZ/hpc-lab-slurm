@@ -1,0 +1,65 @@
+---
+- name: Install Slurm accounting packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "{{ slurm_accounting_packages }}"
+    state: present
+
+- name: Ensure Slurm log directory exists for slurmdbd
+  ansible.builtin.file:
+    path: "{{ slurm_log_dir }}"
+    state: directory
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_user }}"
+    mode: "0755"
+
+- name: Ensure MariaDB is enabled
+  ansible.builtin.service:
+    name: mariadb
+    state: started
+    enabled: true
+
+- name: Check whether the Slurm accounting database exists
+  ansible.builtin.shell: mysql -NBe "SHOW DATABASES LIKE '{{ slurmdbd_storage_loc }}';"
+  args:
+    executable: /bin/bash
+  register: slurmdbd_database_check
+  changed_when: false
+
+- name: Create the Slurm accounting database
+  ansible.builtin.command: mysql -e "CREATE DATABASE {{ slurmdbd_storage_loc }}"
+  when: slurmdbd_database_check.stdout.strip() != slurmdbd_storage_loc
+
+- name: Check whether the Slurm accounting database user exists
+  ansible.builtin.shell: mysql -NBe "SELECT CONCAT(User, '@', Host) FROM mysql.user WHERE User='{{ slurmdbd_storage_user }}' AND Host='{{ slurmdbd_storage_user_host }}';"
+  args:
+    executable: /bin/bash
+  register: slurmdbd_user_check
+  changed_when: false
+  no_log: true
+
+- name: Create the Slurm accounting database user
+  ansible.builtin.command: mysql -e "CREATE USER '{{ slurmdbd_storage_user }}'@'{{ slurmdbd_storage_user_host }}' IDENTIFIED BY '{{ slurmdbd_storage_password }}';"
+  when: slurmdbd_user_check.stdout.strip() == ''
+  no_log: true
+
+- name: Set Slurm accounting database grants
+  ansible.builtin.command: mysql -e "ALTER USER '{{ slurmdbd_storage_user }}'@'{{ slurmdbd_storage_user_host }}' IDENTIFIED BY '{{ slurmdbd_storage_password }}'; GRANT ALL PRIVILEGES ON {{ slurmdbd_storage_loc }}.* TO '{{ slurmdbd_storage_user }}'@'{{ slurmdbd_storage_user_host }}'; FLUSH PRIVILEGES;"
+  changed_when: false
+  no_log: true
+
+- name: Render slurmdbd.conf
+  ansible.builtin.template:
+    src: slurmdbd.conf.j2
+    dest: "{{ slurmdbd_conf_path }}"
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_user }}"
+    mode: "0600"
+  notify: restart slurmdbd
+
+- name: Ensure slurmdbd is enabled
+  ansible.builtin.service:
+    name: slurmdbd
+    state: started
+    enabled: true

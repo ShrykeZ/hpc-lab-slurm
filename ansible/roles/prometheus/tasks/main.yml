@@ -1,0 +1,22 @@
+---
+- name: Install Prometheus packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "{{ prometheus_packages }}"
+    state: present
+
+- name: Render Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart prometheus
+
+- name: Ensure Prometheus is enabled
+  ansible.builtin.service:
+    name: prometheus
+    state: started
+    enabled: true

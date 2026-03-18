@@ -13,6 +13,7 @@ SlurmdPort={{ slurmd_port }}
 
 ProctrackType={{ slurm_proctrack_type }}
 TaskPlugin={{ slurm_task_plugin }}
+JobAcctGatherType={{ slurm_job_acct_gather_type }}
 
 ReturnToService={{ slurm_return_to_service }}
 SchedulerType={{ slurm_scheduler_type }}
@@ -20,6 +21,12 @@ SelectType={{ slurm_select_type }}
 SelectTypeParameters={{ slurm_select_type_parameters }}
 
 GresTypes={{ slurm_gres_types | join(',') }}
+{% if slurmdbd_enabled | bool %}
+AccountingStorageType={{ slurm_accounting_storage_type }}
+AccountingStorageHost={{ slurmdbd_host }}
+AccountingStoragePort={{ slurmdbd_port }}
+AccountingStorageTRES={{ slurm_accounting_tres | join(',') }}
+{% endif %}
 
 MpiDefault=none
 SlurmctldPidFile=/run/slurmctld.pid
@@ -37,4 +44,3 @@ PartitionName=gpu Nodes={{ groups['compute_gpu'] | join(',') }} Default={{ 'YES'
 {% if groups['compute_cpu'] | length > 0 %}
 PartitionName=cpu Nodes={{ groups['compute_cpu'] | join(',') }} Default={{ 'YES' if slurm_default_partition == 'cpu' else 'NO' }} MaxTime=INFINITE State=UP
 {% endif %}
-

@@ -1,3 +1,17 @@
 controller_packages:
   - slurmctld
 
+slurm_accounting_packages:
+  - mariadb-client
+  - mariadb-server
+  - slurmdbd
+
+prometheus_packages:
+  - prometheus
+
+slurmdbd_storage_host: localhost
+slurmdbd_storage_port: 3306
+slurmdbd_storage_loc: slurm_acct_db
+slurmdbd_storage_user: slurm
+slurmdbd_storage_user_host: localhost
+slurmdbd_storage_password: change-me-before-deploy

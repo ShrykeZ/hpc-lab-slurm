@@ -7,4 +7,4 @@ nvidia_driver_packages:
   - nvidia-utils-535
 
 gpu_autodetect_mode: nvml
-
+nvidia_container_toolkit_package: nvidia-container-toolkit

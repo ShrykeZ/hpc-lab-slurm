@@ -1,0 +1,11 @@
+---
+- name: restart docker
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+
+- name: restart dcgm exporter
+  ansible.builtin.systemd:
+    name: dcgm-exporter
+    state: restarted
+    daemon_reload: true

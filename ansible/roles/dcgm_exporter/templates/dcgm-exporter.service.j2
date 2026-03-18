@@ -1,0 +1,15 @@
+[Unit]
+Description=DCGM exporter container
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Restart=always
+RestartSec=5
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker rm -f {{ dcgm_exporter_container_name }}
+ExecStart=/usr/bin/docker run --rm --name {{ dcgm_exporter_container_name }} --gpus all --cap-add SYS_ADMIN --net host {{ dcgm_exporter_image }}
+ExecStop=/usr/bin/docker stop {{ dcgm_exporter_container_name }}
+
+[Install]
+WantedBy=multi-user.target

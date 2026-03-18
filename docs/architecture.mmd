@@ -1,10 +1,12 @@
 flowchart LR
-    ctrl["slurm-ctrl<br/>controller + login<br/>slurmctld"]
-    gpu01["slurm-gpu01<br/>slurmd<br/>GPU node"]
-    gpu02["slurm-gpu02<br/>slurmd<br/>GPU or CPU node"]
+    ctrl["slurm-ctrl<br/>slurmctld<br/>slurmdbd<br/>MariaDB<br/>Prometheus"]
+    gpu01["slurm-gpu01<br/>slurmd<br/>DCGM exporter<br/>GPU node"]
+    gpu02["slurm-gpu02<br/>slurmd<br/>DCGM exporter optional<br/>GPU or CPU node"]
 
     ctrl --- gpu01
     ctrl --- gpu02
     ctrl -. "shared munge key" .- gpu01
     ctrl -. "shared munge key" .- gpu02
-
+    gpu01 -. "gpu metrics" .-> ctrl
+    gpu02 -. "gpu metrics" .-> ctrl
+    ctrl -. "accounting records" .-> ctrl

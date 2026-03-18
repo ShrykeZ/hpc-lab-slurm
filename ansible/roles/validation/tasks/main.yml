@@ -5,6 +5,36 @@
     executable: /bin/bash
   changed_when: false
 
+- name: Ensure the Slurm accounting cluster exists
+  ansible.builtin.command: sacctmgr -nP show cluster format=cluster
+  delegate_to: "{{ slurmctld_host }}"
+  register: accounting_cluster_list
+  changed_when: false
+  run_once: true
+  when: slurmdbd_enabled | bool
+
+- name: Register the Slurm accounting cluster
+  ansible.builtin.command: sacctmgr -i add cluster {{ cluster_name }}
+  delegate_to: "{{ slurmctld_host }}"
+  run_once: true
+  when:
+    - slurmdbd_enabled | bool
+    - cluster_name not in (accounting_cluster_list.stdout_lines | default([]))
+
+- name: Show Slurm accounting clusters
+  ansible.builtin.command: sacctmgr -nP show cluster format=cluster
+  delegate_to: "{{ slurmctld_host }}"
+  register: accounting_cluster_output
+  changed_when: false
+  run_once: true
+  when: slurmdbd_enabled | bool
+
+- name: Show Slurm accounting cluster output
+  ansible.builtin.debug:
+    var: accounting_cluster_output.stdout_lines
+  run_once: true
+  when: slurmdbd_enabled | bool
+
 - name: Validate cluster state from the controller
   ansible.builtin.command: sinfo -Nel
   delegate_to: "{{ slurmctld_host }}"
@@ -29,9 +59,21 @@
     var: node_result.stdout_lines
   run_once: true
 
+- name: Validate Prometheus readiness on the controller
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ prometheus_port }}/-/ready"
+    status_code: 200
+  delegate_to: "{{ slurmctld_host }}"
+  run_once: true
+
 - name: Validate nvidia-smi on GPU nodes
   ansible.builtin.command: nvidia-smi -L
   register: validation_nvidia_smi
   changed_when: false
   when: gpu_count | default(0) | int > 0
 
+- name: Validate DCGM exporter metrics on GPU nodes
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ dcgm_exporter_port }}/metrics"
+    status_code: 200
+  when: gpu_count | default(0) | int > 0

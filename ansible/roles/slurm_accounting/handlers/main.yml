@@ -1,0 +1,5 @@
+---
+- name: restart slurmdbd
+  ansible.builtin.service:
+    name: slurmdbd
+    state: restarted
